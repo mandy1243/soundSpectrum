@@ -1,0 +1,255 @@
+<html>
+<head>
+  <meta charset="UTF-8">
+
+  <!-- to get rid of favicon request in console -->
+  <link rel="shortcut icon" href="">
+
+  <!-- set viewport - for responsive -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- P5 STUFF -->
+  <script language="javascript" type="text/javascript" src="libraries/p5.js"></script>
+  <!-- uncomment lines below to include extra p5 libraries -->
+  <script language="javascript" src="libraries/p5.dom.js"></script>
+  <script language="javascript" src="libraries/p5.sound.js"></script>
+  <link href="https://fonts.googleapis.com/css?family=Oswald" rel="stylesheet">
+
+ <!--  <script language="javascript" type="text/javascript" src="sketch.js"></script> -->
+
+  <!-- SOCKET STUFF -->
+  <script type="text/javascript" src="/socket.io/socket.io.js"></script>
+
+  <script type="text/javascript">
+
+  var song;
+	var fft;
+	var button;
+	var alpha, beta;
+  var waveType = ['sine', 'triangle', 'sawtooth', 'square'];
+  var newWave;
+
+	var mic, fft;
+	var wave;
+	var theAmp, theFreq, theAmp2, theFreq2, theAmp3, theFreq3, theAmp4, theFreq4;
+  var randWave, randWave2, randWave3, randWave4;
+  var start, end;
+    
+    /// SOCKET STUFF - comment in to use socket
+    var socket = io.connect();
+    
+    socket.on('connect', function() {
+      console.log("Connected");
+    });
+
+    socket.on('getData', function(data){
+   		// console.log("received alpha: " + data.alpha);
+   		// console.log("received beta: " + data.beta);
+   		alpha = data.alpha;
+   		beta = data.beta;
+
+   		// console.log(alpha);
+
+   		theAmp = map(alpha/2, 0, height, 0, 1);
+		  theFreq = Math.floor(map(beta/2, 0, width, 100, 3000));
+      console.log('mobile one connected');
+
+		  // console.log(theAmp);
+		  // console.log(theFreq);
+    });
+
+    socket.on('getData2', function(data){
+      // console.log("received alpha: " + data.alpha);
+      // console.log("received beta: " + data.beta);
+      alpha = data.alpha;
+      beta = data.beta;
+      console.log('mobile two connected');
+
+      // console.log(alpha);
+
+      theAmp2 = map(alpha/2, 0, height, 0, 1);
+      theFreq2 = Math.floor(map(beta/2, 0, width, 100, 3000));
+    });
+
+
+    socket.on('getData3', function(data){
+      // console.log("received alpha: " + data.alpha);
+      // console.log("received beta: " + data.beta);
+      alpha = data.alpha;
+      beta = data.beta;
+      console.log('mobile three connected');
+
+      // console.log(alpha);
+
+      theAmp3 = map(alpha/2, 0, height, 0, 1);
+      theFreq3 = Math.floor(map(beta/2, 0, width, 100, 3000));
+    });
+
+    socket.on('getData4', function(data){
+      // console.log("received alpha: " + data.alpha);
+      // console.log("received beta: " + data.beta);
+      alpha = data.alpha;
+      beta = data.beta;
+      console.log('mobile four connected');
+
+      // console.log(alpha);
+
+      theAmp4 = map(alpha/2, 0, height, 0, 1);
+      theFreq4 = Math.floor(map(beta/2, 0, width, 100, 3000));
+    });
+
+    
+// P5 STUFF
+// making sound out of nothing = SYNTHESIS
+
+function toggleStart() {
+  if (start === 1) {
+    randWave.start();
+    randWave2.start();
+    randWave3.start();
+    randWave4.start();
+    console.log('starting');
+  }
+}
+
+function toggleEnd() {
+  if (end === 2) {
+    randWave.stop();
+    randWave2.stop();
+    randWave3.stop();
+    randWave4.stop();
+    console.log('stopping');
+  }
+}
+
+function setup() {
+  var canvas = createCanvas(600, 470);
+  canvas.parent('canvas');
+  colorMode(HSB);
+  angleMode(DEGREES);
+  // button = createButton('Start');
+  // button.mousePressed(toggleStart);
+  // button = createButton('End');
+  // button.mousePressed(toggleEnd);
+
+  randWave = new p5.Oscillator();
+  randWave.freq(432);
+  randWave.amp(.5);
+  // newWave = random(waveType);
+  // console.log(random(waveType));
+  randWave.setType('square');
+
+
+  randWave2 = new p5.Oscillator();
+  randWave2.freq(432);
+  randWave2.amp(.5);
+  // newWave = random(waveType);
+  // console.log(random(waveType));
+  randWave2.setType('sawtooth');
+
+  randWave3 = new p5.Oscillator();
+  randWave3.freq(432);
+  randWave3.amp(.5);
+  // newWave = random(waveType);
+  // console.log(random(waveType));
+  randWave3.setType('triangle');
+
+  randWave4 = new p5.Oscillator();
+  randWave4.freq(432);
+  randWave4.amp(.5);
+  // newWave = random(waveType);
+  // console.log(random(waveType));
+  randWave4.setType('sine');
+
+  start = 1;
+  end = 2;
+
+  fft = new p5.FFT(0.2, 128);
+  fft.setInput();
+}
+
+function draw() {
+  background(0);
+
+  randWave.freq(theFreq);
+  randWave.amp(theAmp);
+
+  randWave2.freq(theFreq2);
+  randWave2.amp(theAmp2);
+
+  randWave3.freq(theFreq3);
+  randWave3.amp(theAmp3);
+
+  randWave4.freq(theFreq4);
+  randWave4.amp(theAmp4);
+
+  var spectrum = fft.analyze();
+
+  translate(width / 2, height / 2);
+
+  for (var i = 0; i < spectrum.length; i++) {
+    var angle = map(i, 0, spectrum.length, 0, 360);
+    var amp = spectrum[i];
+    //radius
+    var r = map(amp, 0, 250, 100, 265);
+    //fill(i, 255, 255);
+    var x = r * cos(angle);
+    var y = r * sin(angle);
+    stroke(i, 255, 255);
+    line(0, 0, x, y);
+  }
+}
+  </script>
+
+  <style> 
+    body{
+      padding: 0; 
+      margin: 0;
+      background-color:rgb(0, 0, 0);
+      text-align: center;
+    }
+
+    h1{
+    	font-size:3em;
+    	color: White;
+    	font-family: 'Oswald', sans-serif;
+    	margin:0;
+    	padding:0;
+    }
+
+    p{
+    	font-size:1em;
+    	color: White;
+    	font-family: 'Oswald', sans-serif;
+    	margin:0;
+    	padding:0;
+    }
+
+    button {
+    background-color: Red; 
+    border: none;
+    color: white;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+	}
+
+	canvas{
+		
+		justify-content: center;
+	}
+  </style>
+</head>
+
+<body>
+	<h1> Let's Make Some Cool Synthesizers</h1>
+	<p> start phones to connect to the spectrometer</p>
+	<div id = "canvas">
+	</div>
+	<button onclick="toggleStart()">Start</button>
+	<button onclick="toggleEnd()">Stop</button>
+
+</body>
+</html>
